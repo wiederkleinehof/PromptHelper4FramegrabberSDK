@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Compose high-quality LLM prompts for robust Basler Framegrabber SDK and pylon SDK acquisition code. Runs entirely in your browser.">
+  <meta name="theme-color" content="#0066b3">
+  <meta name="color-scheme" content="light">
+  <meta property="og:type" content="website">
+  <meta property="og:title" content="Basler Framegrabber SDK Prompt Generator">
+  <meta property="og:description" content="Compose high-quality LLM prompts for robust Basler Framegrabber SDK and pylon SDK acquisition code. Runs entirely in your browser.">
+  <title>Basler Framegrabber SDK Prompt Generator</title>
+  <link rel="icon" href="favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <a class="skip-link" href="#main-content">Skip to main content</a>
+  <noscript>
+    <div class="noscript-banner" role="alert">
+      This tool requires JavaScript. Enable JavaScript in your browser to generate prompts.
+    </div>
+  </noscript>
+  <header class="site-header">
+    <div class="header-inner">
+      <div class="brand">
+        <h1 id="site-title">Basler Framegrabber SDK Prompt Generator</h1>
+        <p id="site-subtitle" class="subtitle">Compose high-quality LLM prompts for robust Basler acquisition code</p>
+      </div>
+      <div class="header-controls">
+        <label for="ui-language" class="sr-only">UI language</label>
+        <select id="ui-language" class="lang-select" aria-label="UI language"></select>
+      </div>
+    </div>
+  </header>
+
+  <main id="main-content" class="main-layout">
+    <section class="panel panel-inputs" aria-labelledby="inputs-heading">
+      <h2 id="inputs-heading" class="panel-title">Configuration</h2>
+
+      <div class="notice notice-privacy dismissible-notice" role="status" data-notice-id="privacy">
+        <button type="button" class="notice-dismiss" aria-label="Dismiss">×</button>
+        <strong id="privacy-label">Data privacy</strong>
+        <p id="privacy-text">All input stays local in your browser. No data is transmitted.</p>
+      </div>
+
+      <div class="notice notice-confidential dismissible-notice" role="alert" data-notice-id="confidential">
+        <button type="button" class="notice-dismiss" aria-label="Dismiss">×</button>
+        <strong id="confidential-label">Confidentiality</strong>
+        <p id="confidential-text">Review the generated prompt before sharing it. Do not include confidential customer data, source code, credentials, serial numbers, license keys, or unpublished project details.</p>
+      </div>
+
+      <div class="notice notice-guidance dismissible-notice" data-notice-id="guidance">
+        <button type="button" class="notice-dismiss" aria-label="Dismiss">×</button>
+        <strong id="guidance-label">Guidance</strong>
+        <p id="guidance-text">If you already have existing acquisition code from another SDK or system, first use an AI assistant of your choice to summarize what the code does. Do not paste confidential source code unless allowed. Prefer to paste a technical summary: What is acquired? Which camera and acquisition parameters are configured? How are buffers, triggers, DMA channels, events, timeouts, and cleanup handled?</p>
+      </div>
+
+      <div class="notice notice-support dismissible-notice" role="status" data-notice-id="support">
+        <button type="button" class="notice-dismiss" aria-label="Dismiss">×</button>
+        <strong id="support-label">Official support</strong>
+        <p id="support-text">This tool helps you compose LLM prompts only. For help with Basler cameras, frame grabbers, SDKs, or your application, you can also contact <a href="https://www.baslerweb.com/en/support/contact" rel="noopener noreferrer" target="_blank">Basler Support</a>.</p>
+      </div>
+
+      <form id="prompt-form" class="config-form" novalidate>
+        <div class="detected-section detected-section-top">
+          <h3 id="detected-topics-title">Detected topics</h3>
+          <div id="detected-tags" class="tag-list" aria-live="polite"></div>
+          <p id="no-topics-text" class="muted-text hidden">No topics detected yet. Type in the application description or workflow summary.</p>
+        </div>
+
+        <div class="form-group">
+          <label for="app-description" id="label-app-description">Application description</label>
+          <textarea id="app-description" rows="5" placeholder=""></textarea>
+        </div>
+
+        <div class="form-group">
+          <label for="workflow-summary" id="label-workflow-summary">Summary of existing acquisition workflow</label>
+          <textarea id="workflow-summary" rows="4" placeholder=""></textarea>
+          <p class="help-text" id="help-workflow-summary">Paste a summary of what your existing code does, not necessarily the source code itself.</p>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group" id="camera-count-group">
+            <label for="camera-count" id="label-camera-count">Number of cameras</label>
+            <input type="number" id="camera-count" min="1" value="1">
+            <p id="warning-camera-count-mismatch" class="field-warning hidden" role="alert"></p>
+          </div>
+          <div class="form-group">
+            <label for="camera-interface" id="label-camera-interface">Camera interface</label>
+            <select id="camera-interface"></select>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label for="hardware" id="label-hardware">Basler acquisition hardware</label>
+          <select id="hardware" required></select>
+        </div>
+
+        <div id="warning-interface-card" class="warning-box hidden" role="alert"></div>
+        <div id="warning-interface-route" class="warning-box hidden" role="alert"></div>
+        <div id="warning-cof" class="warning-box hidden" role="alert"></div>
+        <div id="warning-applet" class="warning-box hidden" role="alert"></div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label for="applet-handling" id="label-applet-handling">Applet handling</label>
+            <select id="applet-handling"></select>
+          </div>
+          <div class="form-group">
+            <label for="standard-acq-applet" id="label-standard-acq-applet">Standard acquisition applet</label>
+            <select id="standard-acq-applet"></select>
+            <p class="help-text hidden" id="help-standard-acq"></p>
+            <p class="help-text hidden" id="help-standard-acq-imaflex2"></p>
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group form-group-wide">
+            <label for="applet-name" id="label-applet-name">Applet / .hap name</label>
+            <input type="text" id="applet-name" autocomplete="off">
+            <p class="help-text" id="help-applet-name"></p>
+            <p class="help-text hidden" id="help-auto-acq-applet"></p>
+          </div>
+        </div>
+
+        <div id="warning-acquisition-hw" class="warning-box hidden" role="status"></div>
+
+        <div id="per-camera-section" class="per-camera-section">
+          <h3 id="per-camera-title" class="subsection-title">Per-camera image configuration</h3>
+          <p class="help-text" id="help-per-camera-dims">Camera type, pixel format, and image dimensions may differ per camera.</p>
+          <div id="per-camera-fields" class="per-camera-fields"></div>
+        </div>
+
+        <div class="form-row" id="dma-count-row">
+          <div class="form-group" id="dma-count-group">
+            <label for="dma-count" id="label-dma-count">Number of DMA channels</label>
+            <input type="number" id="dma-count" min="1" value="1">
+            <p class="help-text" id="help-dma-count-separate">On programmable framegrabbers the number of DMA channels may differ from the number of cameras.</p>
+          </div>
+        </div>
+
+        <div id="per-dma-section" class="per-camera-section">
+          <h3 id="per-dma-title" class="subsection-title">Per-DMA buffer configuration</h3>
+          <p class="help-text" id="help-per-dma-dims">DMA buffer size and pixel format may differ from the sensor image and from other DMA channels. Host buffer count is configured per DMA channel.</p>
+          <p class="help-text hidden" id="help-dma-pylon"></p>
+          <div id="per-dma-fields" class="per-camera-fields"></div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label for="trigger-mode" id="label-trigger-mode">Trigger mode</label>
+            <select id="trigger-mode"></select>
+          </div>
+          <div class="form-group">
+            <label for="programming-language" id="label-programming-language">Programming language</label>
+            <select id="programming-language"></select>
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group form-group-wide">
+            <label for="operating-system" id="label-operating-system">Operating system</label>
+            <select id="operating-system"></select>
+          </div>
+        </div>
+
+        <fieldset class="checkbox-group">
+          <legend id="legend-options">Prompt options</legend>
+          <div class="checkbox-grid" id="checkbox-container"></div>
+        </fieldset>
+
+        <div class="action-bar">
+          <button type="button" id="btn-load-example" class="btn btn-secondary">Load example</button>
+          <button type="button" id="btn-reset" class="btn btn-secondary">Reset all</button>
+        </div>
+
+        <details class="snippets-details snippets-details-bottom" id="snippets-details">
+          <summary id="snippets-summary">Activated snippets</summary>
+          <ul id="activated-snippets" class="snippet-list"></ul>
+        </details>
+      </form>
+    </section>
+
+    <section class="panel panel-preview" aria-labelledby="preview-heading">
+      <div class="preview-header">
+        <h2 id="preview-heading" class="panel-title">Live prompt preview</h2>
+        <span id="sdk-route-badge" class="route-badge route-framegrabber">Basler Framegrabber SDK route</span>
+      </div>
+
+      <div class="preview-actions">
+        <button type="button" id="btn-copy" class="btn btn-primary">Copy prompt</button>
+        <button type="button" id="btn-download" class="btn btn-primary">Download prompt as .txt</button>
+        <button type="button" id="btn-refresh" class="btn btn-secondary">Refresh prompt</button>
+      </div>
+
+      <p id="copy-status" class="status-text" aria-live="polite"></p>
+
+      <div class="preview-output-controls">
+        <div class="form-group">
+          <label for="target-llm" id="label-target-llm">Target LLM</label>
+          <select id="target-llm"></select>
+        </div>
+        <div class="form-group">
+          <label for="output-style" id="label-output-style">Output style</label>
+          <select id="output-style"></select>
+        </div>
+      </div>
+
+      <pre id="prompt-preview" class="prompt-preview" aria-label="Generated prompt preview"></pre>
+    </section>
+  </main>
+
+  <footer class="site-footer">
+    <p id="footer-text">Client-side only. No tracking. No external APIs.</p>
+    <p id="footer-autosave" class="footer-note">Your configuration is saved locally in this browser.</p>
+  </footer>
+
+  <script src="prompt-bodies.js"></script>
+  <script src="prompt-locales-extra.js"></script>
+  <script src="script.js"></script>
+</body>
+</html>
