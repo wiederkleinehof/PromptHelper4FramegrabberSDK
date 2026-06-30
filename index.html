@@ -24,19 +24,19 @@
   <section class="modern-landing" id="modern-landing" aria-label="Get started">
     <div class="modern-landing-bg" aria-hidden="true"></div>
     <div class="modern-landing-inner">
-      <div class="modern-hero-copy">
+      <button type="button" class="modern-hero-copy" id="modern-hero-copy" data-modern-action="step1">
         <p id="modern-hero-eyebrow" class="modern-hero-eyebrow">Framegrabber SDK · Prompt Studio</p>
-        <h2 id="modern-hero-title" class="modern-hero-title">Basler Framegrabber SDK Prompt Generator</h2>
+        <span id="modern-hero-title" class="modern-hero-title">Basler Framegrabber SDK Prompt Generator</span>
         <p id="modern-hero-subtitle" class="modern-hero-subtitle">Compose high-quality LLM prompts for robust Basler acquisition code</p>
-      </div>
+      </button>
       <div class="modern-brand" aria-hidden="true">
         <span class="modern-brand-mark"></span>
       </div>
-      <p id="modern-landing-hint" class="modern-landing-hint">Click a step to get started</p>
+      <button type="button" id="modern-landing-hint" class="modern-landing-hint" data-modern-action="step1">Click a step to get started</button>
       <div class="modern-stage">
         <div class="modern-workflow-diagram" role="group" aria-label="Workflow overview">
         <div class="modern-wf-top">
-          <button type="button" class="modern-step-card" id="modern-step-1" data-step="1">
+          <button type="button" class="modern-step-card" id="modern-step-1" data-step="1" data-modern-action="step1">
             <span class="modern-step-num" aria-hidden="true">1</span>
             <span id="modern-step-1-label" class="modern-step-label">Analyse your code locally</span>
             <span id="modern-step-1-action" class="modern-step-desc">Analyse your code</span>
@@ -52,7 +52,7 @@
             </svg>
           </div>
 
-          <button type="button" class="modern-step-card modern-step-card-accent" id="modern-step-2" data-step="2">
+          <button type="button" class="modern-step-card modern-step-card-accent" id="modern-step-2" data-step="2" data-modern-action="step2">
             <span class="modern-step-num" aria-hidden="true">2</span>
             <span id="modern-step-2-label" class="modern-step-label">Get the Prompt</span>
             <span id="modern-step-2-action" class="modern-step-desc">Paste the results from your local agent</span>
@@ -78,9 +78,10 @@
               <animateMotion dur="2.2s" begin="1.1s" repeatCount="indefinite" path="M 0 0 C 16 50, -16 90, 0 146" />
             </circle>
           </svg>
+        </div>
 
-          <div class="modern-wf-llm-row">
-            <div class="modern-llm-node modern-llm-node-a">
+        <div class="modern-wf-llm-row">
+            <button type="button" class="modern-llm-node modern-llm-node-a" data-modern-action="step1">
               <span class="modern-llm-icon" aria-hidden="true">
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                   <path d="M12 2a4 4 0 0 1 4 4v1h1a3 3 0 0 1 3 3v8a3 3 0 0 1-3 3H7a3 3 0 0 1-3-3v-8a3 3 0 0 1 3-3h1V6a4 4 0 0 1 4-4z" stroke="currentColor" stroke-width="1.5"/>
@@ -90,9 +91,9 @@
               </span>
               <span id="modern-llm-label-1" class="modern-llm-label">Your local LLM</span>
               <span id="modern-llm-hint-1" class="modern-llm-hint">Summarises your acquisition code</span>
-            </div>
+            </button>
 
-            <div class="modern-llm-node modern-llm-node-b">
+            <button type="button" class="modern-llm-node modern-llm-node-b" data-modern-action="step2">
               <span class="modern-llm-icon" aria-hidden="true">
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                   <path d="M12 2a4 4 0 0 1 4 4v1h1a3 3 0 0 1 3 3v8a3 3 0 0 1-3 3H7a3 3 0 0 1-3-3v-8a3 3 0 0 1 3-3h1V6a4 4 0 0 1 4-4z" stroke="currentColor" stroke-width="1.5"/>
@@ -102,9 +103,8 @@
               </span>
               <span id="modern-llm-label-2" class="modern-llm-label">Your local LLM</span>
               <span id="modern-llm-hint-2" class="modern-llm-hint">Generates Basler acquisition code</span>
-            </div>
+            </button>
           </div>
-        </div>
         </div>
       </div>
     </div>
@@ -126,16 +126,16 @@
   <section class="workflow-hero" aria-label="Workflow">
     <div class="workflow-hero-inner">
       <ol class="workflow-steps">
-        <li class="workflow-step workflow-step-active">
+        <li class="workflow-step workflow-step-active" id="workflow-nav-step-1" role="button" tabindex="0" data-modern-action="step1">
           <span class="workflow-step-num" aria-hidden="true">1</span>
           <span id="workflow-step-1-label" class="workflow-step-label">Analyse your code locally</span>
-          <button type="button" id="btn-workflow-analyse" class="btn btn-primary btn-workflow">Analyse your code</button>
+          <button type="button" id="btn-workflow-analyse" class="btn btn-primary btn-workflow" data-modern-action="step1">Analyse your code</button>
         </li>
         <li class="workflow-step-arrow" aria-hidden="true">→</li>
-        <li class="workflow-step">
+        <li class="workflow-step" id="workflow-nav-step-2" role="button" tabindex="0" data-modern-action="step2">
           <span class="workflow-step-num" aria-hidden="true">2</span>
           <span id="workflow-step-2-label" class="workflow-step-label">Get the Prompt</span>
-          <button type="button" id="btn-workflow-prompt" class="btn btn-secondary btn-workflow">Get the Prompt</button>
+          <button type="button" id="btn-workflow-prompt" class="btn btn-secondary btn-workflow" data-modern-action="step2">Get the Prompt</button>
         </li>
       </ol>
     </div>

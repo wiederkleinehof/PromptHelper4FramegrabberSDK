@@ -139,6 +139,7 @@
   let uiLang = 'en';
   let viewMode = 'modern';
   let modernExpanded = false;
+  let analysisScrollTimer = null;
 
   const $ = (id) => document.getElementById(id);
 
@@ -1864,6 +1865,12 @@
     applySupportNotice();
     const landingHint = $('modern-landing-hint');
     if (landingHint) landingHint.textContent = t('modern_landing_hint');
+    const heroCopy = $('modern-hero-copy');
+    if (heroCopy) heroCopy.setAttribute('aria-label', t('modern_step_1_cta') + ' — ' + t('workflow_step_1_label'));
+    const llmNodeA = document.querySelector('.modern-llm-node-a');
+    if (llmNodeA) llmNodeA.setAttribute('aria-label', t('modern_step_1_cta') + ' — ' + t('modern_llm_hint_analyse'));
+    const llmNodeB = document.querySelector('.modern-llm-node-b');
+    if (llmNodeB) llmNodeB.setAttribute('aria-label', t('modern_step_2_cta') + ' — ' + t('modern_llm_hint_generate'));
     const heroEyebrow = $('modern-hero-eyebrow');
     if (heroEyebrow) heroEyebrow.textContent = t('modern_hero_eyebrow');
     const heroTitle = $('modern-hero-title');
@@ -1995,13 +2002,14 @@
     btn.setAttribute('aria-pressed', isOldschool ? 'true' : 'false');
   }
 
-  function saveViewMode() {
+  function saveViewModeState() {
     try {
       localStorage.setItem(VIEW_MODE_STORAGE_KEY, JSON.stringify({ mode: viewMode }));
     } catch (e) { /* ignore */ }
   }
 
   function loadViewMode() {
+    modernExpanded = false;
     try {
       const raw = localStorage.getItem(VIEW_MODE_STORAGE_KEY);
       if (!raw) return;
@@ -2010,14 +2018,54 @@
     } catch (e) { /* ignore */ }
   }
 
+  function scheduleScrollToStep2AfterAnalysisCopy() {
+    if (analysisScrollTimer) clearTimeout(analysisScrollTimer);
+    const reducedMotion = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    const delay = reducedMotion ? 500 : 10000;
+    analysisScrollTimer = setTimeout(function () {
+      analysisScrollTimer = null;
+      scrollToWorkflowSummary();
+    }, delay);
+  }
+
   function expandModernView(step) {
     if (viewMode !== 'modern') return;
     modernExpanded = true;
     applyViewModeClasses();
-    requestAnimationFrame(() => {
+    requestAnimationFrame(function () {
       if (step === 1) scrollToAnalysisTarget();
       else scrollToWorkflowSummaryTarget();
     });
+  }
+
+  function handleModernActionClick(e) {
+    const el = e.target.closest('[data-modern-action]');
+    if (!el) return;
+    const action = el.getAttribute('data-modern-action');
+    if (action !== 'step1' && action !== 'step2') return;
+    e.preventDefault();
+
+    if (viewMode === 'oldschool') {
+      if (action === 'step1') scrollToAnalysisTarget();
+      else scrollToWorkflowSummaryTarget();
+      return;
+    }
+
+    if (action === 'step1') scrollToAnalysisSection();
+    else scrollToWorkflowSummary();
+  }
+
+  function handleModernActionKeydown(e) {
+    if (e.key !== 'Enter' && e.key !== ' ') return;
+    const el = e.target.closest('[data-modern-action][role="button"]');
+    if (!el) return;
+    e.preventDefault();
+    handleModernActionClick({ target: el, preventDefault: function () {} });
+  }
+
+  function initModernActionControls() {
+    document.addEventListener('click', handleModernActionClick);
+    document.addEventListener('keydown', handleModernActionKeydown);
   }
 
   function toggleViewMode() {
@@ -2029,18 +2077,14 @@
     }
     applyViewModeClasses();
     updateViewToggleLabel();
-    saveViewMode();
+    saveViewModeState();
   }
 
   function initViewMode() {
-    modernExpanded = false;
     loadViewMode();
     applyViewModeClasses();
     updateViewToggleLabel();
-    const step1 = $('modern-step-1');
-    if (step1) step1.addEventListener('click', () => expandModernView(1));
-    const step2 = $('modern-step-2');
-    if (step2) step2.addEventListener('click', () => expandModernView(2));
+    initModernActionControls();
     const toggle = $('view-mode-toggle');
     if (toggle) toggle.addEventListener('click', toggleViewMode);
   }
@@ -2066,6 +2110,7 @@
     const onSuccess = () => {
       status.textContent = t('analysis_copy_success');
       showCopyGuidanceToast('analysis_copy_guidance', 'analysis_copy_success');
+      scheduleScrollToStep2AfterAnalysisCopy();
     };
     const onFail = () => {
       status.textContent = t('analysis_copy_fail');
@@ -2094,10 +2139,6 @@
     if (llmSel) llmSel.addEventListener('change', updateAnalysisPreview);
     const btnCopy = $('btn-copy-analysis');
     if (btnCopy) btnCopy.addEventListener('click', copyAnalysisPrompt);
-    const btnAnalyse = $('btn-workflow-analyse');
-    if (btnAnalyse) btnAnalyse.addEventListener('click', scrollToAnalysisSection);
-    const btnPrompt = $('btn-workflow-prompt');
-    if (btnPrompt) btnPrompt.addEventListener('click', scrollToWorkflowSummary);
     const btnContinue = $('btn-analysis-continue');
     if (btnContinue) btnContinue.addEventListener('click', scrollToWorkflowSummary);
     const wf = $('workflow-summary');
