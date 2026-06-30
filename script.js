@@ -146,6 +146,8 @@
   const UI_STRINGS = {
     en: {
       site_title: 'Basler Framegrabber SDK Prompt Generator',
+      site_title_line1: 'Basler Framegrabber SDK',
+      site_title_line2: 'Prompt Generator',
       site_subtitle: 'Compose high-quality LLM prompts for robust Basler acquisition code',
       workflow_step_1_label: 'Analyse your code locally',
       workflow_step_2_label: 'Get the Prompt',
@@ -332,6 +334,8 @@
     },
     ko: {
       site_title: 'Basler Framegrabber SDK 프롬프트 생성기',
+      site_title_line1: 'Basler Framegrabber SDK',
+      site_title_line2: '프롬프트 생성기',
       site_subtitle: '견고한 Basler 이미지 획득 코드를 위한 고품질 LLM 프롬프트 작성',
       workflow_step_1_label: '로컬에서 코드 분석',
       workflow_step_2_label: '프롬프트 받기',
@@ -478,6 +482,8 @@
     },
     zh: {
       site_title: 'Basler Framegrabber SDK 提示词生成器',
+      site_title_line1: 'Basler Framegrabber SDK',
+      site_title_line2: '提示词生成器',
       site_subtitle: '为稳健的 Basler 图像采集代码编写高质量 LLM 提示词',
       workflow_step_1_label: '在本地分析代码',
       workflow_step_2_label: '获取提示词',
@@ -599,6 +605,8 @@
     },
     ja: {
       site_title: 'Basler Framegrabber SDK プロンプトジェネレーター',
+      site_title_line1: 'Basler Framegrabber SDK',
+      site_title_line2: 'プロンプトジェネレーター',
       site_subtitle: '堅牢な Basler 画像取得コード向けの高品質 LLM プロンプトを作成',
       workflow_step_1_label: 'コードをローカルで分析',
       workflow_step_2_label: 'プロンプトを取得',
@@ -720,6 +728,8 @@
     },
     vi: {
       site_title: 'Trình tạo Prompt Basler Framegrabber SDK',
+      site_title_line1: 'Trình tạo Prompt',
+      site_title_line2: 'Basler Framegrabber SDK',
       site_subtitle: 'Soạn prompt LLM chất lượng cao cho mã thu thập Basler mạnh mẽ',
       workflow_step_1_label: 'Phân tích mã cục bộ',
       workflow_step_2_label: 'Lấy Prompt',
@@ -841,6 +851,8 @@
     },
     de: {
       site_title: 'Basler Framegrabber SDK Prompt-Generator',
+      site_title_line1: 'Basler Framegrabber SDK',
+      site_title_line2: 'Prompt-Generator',
       site_subtitle: 'Hochwertige LLM-Prompts für robusten Basler-Erfassungscode erstellen',
       workflow_step_1_label: 'Code lokal analysieren',
       workflow_step_2_label: 'Prompt erstellen',
@@ -1874,7 +1886,13 @@
     const heroEyebrow = $('modern-hero-eyebrow');
     if (heroEyebrow) heroEyebrow.textContent = t('modern_hero_eyebrow');
     const heroTitle = $('modern-hero-title');
-    if (heroTitle) heroTitle.textContent = t('site_title');
+    const heroTitleLine1 = $('modern-hero-title-line-1');
+    if (heroTitleLine1) heroTitleLine1.textContent = t('site_title_line1');
+    const heroTitleLine2 = $('modern-hero-title-line-2');
+    if (heroTitleLine2) heroTitleLine2.textContent = t('site_title_line2');
+    if (heroTitle) {
+      heroTitle.setAttribute('aria-label', t('site_title'));
+    }
     const heroSubtitle = $('modern-hero-subtitle');
     if (heroSubtitle) heroSubtitle.textContent = t('site_subtitle');
     const modernStep1Label = $('modern-step-1-label');

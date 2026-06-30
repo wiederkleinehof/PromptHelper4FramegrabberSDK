@@ -1360,7 +1360,9 @@ textarea {
 
 /* Hero typography */
 .modern-hero-copy {
-  display: block;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
   width: 100%;
   margin: 0 0 1.75rem;
   padding: 0.5rem 0.75rem;
@@ -1390,6 +1392,7 @@ textarea {
 }
 
 .modern-hero-copy .modern-hero-title,
+.modern-hero-copy .modern-hero-title-line,
 .modern-hero-copy .modern-hero-subtitle,
 .modern-hero-copy .modern-hero-eyebrow {
   pointer-events: none;
@@ -1399,7 +1402,7 @@ textarea {
   display: inline-flex;
   align-items: center;
   gap: 0.5rem;
-  margin: 0 0 0.85rem;
+  margin: 0 0 1rem;
   padding: 0.35rem 0.9rem;
   font-size: 0.72rem;
   font-weight: 700;
@@ -1412,6 +1415,9 @@ textarea {
   backdrop-filter: blur(10px);
   -webkit-backdrop-filter: blur(10px);
   box-shadow: var(--shadow-xs);
+  flex-shrink: 0;
+  max-width: calc(100% - 1rem);
+  text-wrap: balance;
 }
 
 .modern-hero-eyebrow::before {
@@ -1424,17 +1430,27 @@ textarea {
 }
 
 .modern-hero-title {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.12rem;
+  width: 100%;
+  margin: 0 0 0.25rem;
+}
+
+.modern-hero-title-line {
   display: block;
-  margin: 0 0 0.65rem;
+  width: 100%;
   font-size: clamp(1.65rem, 4.5vw, 2.35rem);
   font-weight: 800;
   letter-spacing: -0.04em;
-  line-height: 1.12;
+  line-height: 1.15;
   color: #0f2744;
+  text-wrap: balance;
 }
 
 @supports ((-webkit-background-clip: text) or (background-clip: text)) {
-  .modern-hero-title {
+  .modern-hero-title-line {
     background-image: linear-gradient(135deg, #0b1a2e 0%, #0f2744 40%, #0066b3 100%);
     background-repeat: no-repeat;
     background-size: 100% 100%;
@@ -1447,16 +1463,19 @@ textarea {
 
 .modern-hero-subtitle {
   display: block;
-  margin: 0 auto;
-  max-width: 38ch;
+  width: 100%;
+  max-width: 36ch;
+  margin: 0.85rem auto 0;
+  padding-top: 0.15rem;
   font-size: clamp(0.95rem, 2.2vw, 1.08rem);
   font-weight: 500;
   line-height: 1.55;
   color: var(--text-muted);
+  text-wrap: balance;
 }
 
 @media (forced-colors: active) {
-  .modern-hero-title {
+  .modern-hero-title-line {
     background: none !important;
     -webkit-text-fill-color: CanvasText !important;
     color: CanvasText !important;
