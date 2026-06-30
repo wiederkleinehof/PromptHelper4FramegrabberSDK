@@ -4,16 +4,17 @@
   'use strict';
 
   const LANG_OPTIONS = [
-    { value: 'en', flag: '\uD83C\uDDEC\uD83C\uDDE7', key: 'plang_en' },
-    { value: 'de', flag: '\uD83C\uDDE9\uD83C\uDDEA', key: 'plang_de' },
-    { value: 'ko', flag: '\uD83C\uDDF0\uD83C\uDDF7', key: 'plang_ko' },
-    { value: 'zh', flag: '\uD83C\uDDE8\uD83C\uDDF3', key: 'plang_zh' },
-    { value: 'ja', flag: '\uD83C\uDDEF\uD83C\uDDF5', key: 'plang_ja' },
-    { value: 'vi', flag: '\uD83C\uDDFB\uD83C\uDDF3', key: 'plang_vi' }
+    { value: 'en', flag: '\uD83C\uDDEC\uD83C\uDDE7', nativeName: 'English' },
+    { value: 'de', flag: '\uD83C\uDDE9\uD83C\uDDEA', nativeName: 'Deutsch' },
+    { value: 'ko', flag: '\uD83C\uDDF0\uD83C\uDDF7', nativeName: '\uD55C\uAD6D\uC5B4' },
+    { value: 'zh', flag: '\uD83C\uDDE8\uD83C\uDDF3', nativeName: '\u7B80\u4F53\u4E2D\u6587' },
+    { value: 'ja', flag: '\uD83C\uDDEF\uD83C\uDDF5', nativeName: '\u65E5\u672C\u8A9E' },
+    { value: 'vi', flag: '\uD83C\uDDFB\uD83C\uDDF3', nativeName: 'Ti\u1EBFng Vi\u1EC7t' }
   ];
   const DOWNLOAD_BASE = 'basler-framegrabber-sdk-prompt';
   const STORAGE_KEY = 'basler-fg-prompt-v1';
   const NOTICE_STORAGE_KEY = 'basler-fg-dismissed-notices-v1';
+  const VIEW_MODE_STORAGE_KEY = 'basler-fg-view-mode-v1';
   let saveTimer = null;
 
   const HARDWARE_PRODUCTS = [
@@ -133,7 +134,11 @@
     'We have an industrial image acquisition setup with two CXP-12 cameras. Each camera is connected with x2 links. Acquisition starts via an external frame trigger. Each camera should use a separate DMA channel. Images are Mono8 with 8192 pixels width and 4096 pixels height. Multiple host buffers should be used. After each received frame, the program should show simple access to the image data. Clean timeout handling, error handling, buffer requeueing, and controlled acquisition shutdown are important.';
 
   let currentPromptText = '';
+  let analysisPromptText = '';
+  let highlightTimer = null;
   let uiLang = 'en';
+  let viewMode = 'modern';
+  let modernExpanded = false;
 
   const $ = (id) => document.getElementById(id);
 
@@ -141,6 +146,41 @@
     en: {
       site_title: 'Basler Framegrabber SDK Prompt Generator',
       site_subtitle: 'Compose high-quality LLM prompts for robust Basler acquisition code',
+      workflow_step_1_label: 'Analyse your code locally',
+      workflow_step_2_label: 'Get the Prompt',
+      btn_workflow_analyse: 'Analyse your code',
+      btn_workflow_prompt: 'Get the Prompt',
+      modern_step_2_action: 'Paste the results from your local agent',
+      modern_landing_hint: 'Click a step to get started',
+      modern_hero_eyebrow: 'Framegrabber SDK · Prompt Studio',
+      modern_step_1_cta: 'Open Step 1',
+      modern_step_2_cta: 'Open Step 2',
+      step_badge_1: 'Step 1',
+      step_badge_2: 'Step 2',
+      section_core_title: 'Application setup',
+      section_hardware_title: 'Hardware & routing',
+      section_acquisition_title: 'Acquisition parameters',
+      section_options_title: 'Prompt options',
+      code_analysis_label: 'Analysis prompt',
+      code_preview_label: 'Generated prompt',
+      preview_live_label: 'Live',
+      modern_llm_node: 'Your local LLM',
+      modern_llm_hint_analyse: 'Summarises your acquisition code',
+      modern_llm_hint_generate: 'Generates Basler acquisition code',
+      switch_to_oldschool: 'Switch to oldschool view',
+      switch_to_modern: 'Switch to modern view',
+      analysis_heading: 'Step 1 — Analyse your code locally',
+      analysis_intro: 'Copy the prompt below into your preferred AI assistant and point it at your local acquisition codebase. The assistant should return a technical summary — not source code — covering hardware, SDK usage, buffers, triggers, and shutdown. Paste that summary into the generator in step 2.',
+      analysis_confidential_label: 'Confidentiality',
+      analysis_confidential_text: 'Run analysis locally with tools that keep your code private. Do not paste confidential source into untrusted services. The summary you paste here should omit secrets, credentials, and customer identifiers.',
+      label_analysis_target_llm: 'Target AI assistant',
+      btn_copy_analysis: 'Copy analysis prompt',
+      analysis_copy_success: 'Analysis prompt copied to clipboard.',
+      analysis_copy_fail: 'Could not copy. Select the prompt text manually.',
+      analysis_copy_guidance: 'Now go back to your LLM that you are using to analyze your project!',
+      copy_toast_dismiss: 'Dismiss',
+      analysis_continue_hint: 'When you have the technical summary, continue to the prompt generator and paste it into the highlighted field.',
+      btn_analysis_continue: 'Get the Prompt',
       privacy_label: 'Data privacy',
       privacy_text: 'All input stays local in your browser. No data is transmitted.',
       confidential_label: 'Confidentiality',
@@ -228,6 +268,7 @@
       btn_refresh: 'Refresh prompt',
       copy_success: 'Prompt copied to clipboard.',
       copy_fail: 'Could not copy. Select the preview text manually.',
+      prompt_copy_guidance: 'Now go back to your LLM to create Framegrabber SDK code!',
       footer_text: 'Client-side only. No tracking. No external APIs.',
       footer_autosave: 'Your configuration is saved locally in this browser.',
       warn_interface_card: 'This selection is an interface card, not a programmable framegrabber. The generated prompt will route the implementation toward Basler pylon SDK instead of Basler Framegrabber SDK.',
@@ -291,6 +332,42 @@
     ko: {
       site_title: 'Basler Framegrabber SDK 프롬프트 생성기',
       site_subtitle: '견고한 Basler 이미지 획득 코드를 위한 고품질 LLM 프롬프트 작성',
+      workflow_step_1_label: '로컬에서 코드 분석',
+      workflow_step_2_label: '프롬프트 받기',
+      btn_workflow_analyse: '코드 분석',
+      btn_workflow_prompt: '프롬프트 받기',
+      modern_step_2_action: '로컬 에이전트 결과 붙여넣기',
+      modern_landing_hint: '시작하려면 단계를 클릭하세요',
+      modern_hero_eyebrow: 'Framegrabber SDK · Prompt Studio',
+      modern_step_1_cta: '1단계 열기',
+      modern_step_2_cta: '2단계 열기',
+      step_badge_1: '1단계',
+      step_badge_2: '2단계',
+      section_core_title: '애플리케이션 설정',
+      section_hardware_title: '하드웨어 및 라우팅',
+      section_acquisition_title: '획득 매개변수',
+      section_options_title: '프롬프트 옵션',
+      code_analysis_label: '분석 프롬프트',
+      code_preview_label: '생성된 프롬프트',
+      preview_live_label: '실시간',
+      modern_llm_node: '로컬 LLM',
+      modern_llm_hint_analyse: '획득 코드를 요약합니다',
+      modern_llm_hint_generate: 'Basler 획득 코드를 생성합니다',
+      switch_to_oldschool: 'Oldschool 보기로 전환',
+      switch_to_modern: '모던 보기로 전환',
+      analysis_heading: '1단계 — 로컬에서 코드 분석',
+      analysis_intro: '아래 프롬프트를 선호하는 AI 어시스턴트에 복사하고 로컬 획득 코드베이스를 가리키세요. 어시스턴트는 소스 코드가 아닌 기술 요약(하드웨어, SDK 사용, 버퍼, 트리거, 종료)을 반환해야 합니다. 그 요약을 2단계 생성기에 붙여넣으세요.',
+      analysis_confidential_label: '기밀 유지',
+      analysis_confidential_text: '코드를 비공개로 유지하는 도구로 로컬에서 분석하세요. 신뢰할 수 없는 서비스에 기밀 소스를 붙여넣지 마세요. 여기에 붙여넣는 요약에는 비밀, 자격 증명, 고객 식별 정보가 포함되지 않아야 합니다.',
+      label_analysis_target_llm: '대상 AI 어시스턴트',
+      btn_copy_analysis: '분석 프롬프트 복사',
+      analysis_copy_success: '분석 프롬프트가 클립보드에 복사되었습니다.',
+      analysis_copy_fail: '복사할 수 없습니다. 프롬프트 텍스트를 직접 선택하세요.',
+      analysis_copy_guidance: '이제 프로젝트를 분석하는 데 사용하는 LLM으로 돌아가세요!',
+      copy_toast_dismiss: '닫기',
+      analysis_continue_hint: '기술 요약을 받으면 프롬프트 생성기로 이동하여 강조 표시된 필드에 붙여넣으세요.',
+      btn_analysis_continue: '프롬프트 받기',
+      prompt_copy_guidance: '이제 Framegrabber SDK 코드를 생성하려면 LLM으로 돌아가세요!',
       privacy_label: '데이터 프라이버시',
       privacy_text: '모든 입력은 브라우저에만 저장됩니다. 데이터가 전송되지 않습니다.',
       confidential_label: '기밀 유지',
@@ -401,6 +478,42 @@
     zh: {
       site_title: 'Basler Framegrabber SDK 提示词生成器',
       site_subtitle: '为稳健的 Basler 图像采集代码编写高质量 LLM 提示词',
+      workflow_step_1_label: '在本地分析代码',
+      workflow_step_2_label: '获取提示词',
+      btn_workflow_analyse: '分析代码',
+      btn_workflow_prompt: '获取提示词',
+      modern_step_2_action: '粘贴本地智能体的分析结果',
+      modern_landing_hint: '点击步骤开始',
+      modern_hero_eyebrow: 'Framegrabber SDK · Prompt Studio',
+      modern_step_1_cta: '打开第 1 步',
+      modern_step_2_cta: '打开第 2 步',
+      step_badge_1: '第 1 步',
+      step_badge_2: '第 2 步',
+      section_core_title: '应用设置',
+      section_hardware_title: '硬件与路由',
+      section_acquisition_title: '采集参数',
+      section_options_title: '提示词选项',
+      code_analysis_label: '分析提示词',
+      code_preview_label: '生成的提示词',
+      preview_live_label: '实时',
+      modern_llm_node: '您的本地 LLM',
+      modern_llm_hint_analyse: '总结您的采集代码',
+      modern_llm_hint_generate: '生成 Basler 采集代码',
+      switch_to_oldschool: '切换到 Oldschool 视图',
+      switch_to_modern: '切换到现代视图',
+      analysis_heading: '第 1 步 — 在本地分析代码',
+      analysis_intro: '将下方提示词复制到您首选的 AI 助手，并指向本地采集代码库。助手应返回技术摘要（非源代码），涵盖硬件、SDK 使用、缓冲区、触发和关闭。将该摘要粘贴到第 2 步生成器中。',
+      analysis_confidential_label: '保密提示',
+      analysis_confidential_text: '使用能保护代码隐私的工具在本地进行分析。不要将机密源码粘贴到不可信服务。此处粘贴的摘要应省略秘密、凭据和客户标识。',
+      label_analysis_target_llm: '目标 AI 助手',
+      btn_copy_analysis: '复制分析提示词',
+      analysis_copy_success: '分析提示词已复制到剪贴板。',
+      analysis_copy_fail: '无法复制。请手动选择提示词文本。',
+      analysis_copy_guidance: '现在请返回您用于分析项目的 LLM！',
+      copy_toast_dismiss: '关闭',
+      analysis_continue_hint: '获得技术摘要后，继续到提示词生成器并粘贴到高亮字段中。',
+      btn_analysis_continue: '获取提示词',
+      prompt_copy_guidance: '现在请返回您的 LLM 以创建 Framegrabber SDK 代码！',
       privacy_label: '数据隐私', privacy_text: '所有输入仅保存在您的浏览器中。不会传输任何数据。',
       confidential_label: '保密提示', confidential_text: '分享前请审查生成的提示词。不要包含机密客户数据、源代码、凭据、序列号、许可证密钥或未公开的项目细节。',
       guidance_label: '使用指南', guidance_text: '如果您已有来自其他 SDK 或系统的现有采集代码，请先使用您选择的 AI 助手总结代码功能。除非允许，请勿粘贴机密源代码。建议粘贴技术摘要：采集什么？配置了哪些相机和采集参数？缓冲区、触发、DMA 通道、事件、超时和清理如何处理？',
@@ -486,6 +599,42 @@
     ja: {
       site_title: 'Basler Framegrabber SDK プロンプトジェネレーター',
       site_subtitle: '堅牢な Basler 画像取得コード向けの高品質 LLM プロンプトを作成',
+      workflow_step_1_label: 'コードをローカルで分析',
+      workflow_step_2_label: 'プロンプトを取得',
+      btn_workflow_analyse: 'コードを分析',
+      btn_workflow_prompt: 'プロンプトを取得',
+      modern_step_2_action: 'ローカルエージェントの結果を貼り付け',
+      modern_landing_hint: '開始するにはステップをクリック',
+      modern_hero_eyebrow: 'Framegrabber SDK · Prompt Studio',
+      modern_step_1_cta: 'ステップ 1 を開く',
+      modern_step_2_cta: 'ステップ 2 を開く',
+      step_badge_1: 'ステップ 1',
+      step_badge_2: 'ステップ 2',
+      section_core_title: 'アプリケーション設定',
+      section_hardware_title: 'ハードウェアとルーティング',
+      section_acquisition_title: '取得パラメータ',
+      section_options_title: 'プロンプトオプション',
+      code_analysis_label: '分析プロンプト',
+      code_preview_label: '生成されたプロンプト',
+      preview_live_label: 'ライブ',
+      modern_llm_node: 'ローカル LLM',
+      modern_llm_hint_analyse: '取得コードを要約します',
+      modern_llm_hint_generate: 'Basler 取得コードを生成します',
+      switch_to_oldschool: 'Oldschool 表示に切り替え',
+      switch_to_modern: 'モダン表示に切り替え',
+      analysis_heading: 'ステップ 1 — コードをローカルで分析',
+      analysis_intro: '下のプロンプトをお好みの AI アシスタントにコピーし、ローカルの取得コードベースを参照させてください。アシスタントはソースコードではなく、ハードウェア、SDK の使用、バッファ、トリガー、シャットダウンを含む技術要約を返す必要があります。その要約をステップ 2 のジェネレーターに貼り付けてください。',
+      analysis_confidential_label: '機密保持',
+      analysis_confidential_text: 'コードを非公開に保つツールでローカル分析を行ってください。機密ソースを信頼できないサービスに貼り付けないでください。ここに貼り付ける要約には秘密、認証情報、顧客識別子を含めないでください。',
+      label_analysis_target_llm: '対象 AI アシスタント',
+      btn_copy_analysis: '分析プロンプトをコピー',
+      analysis_copy_success: '分析プロンプトをクリップボードにコピーしました。',
+      analysis_copy_fail: 'コピーできません。プロンプトテキストを手動で選択してください。',
+      analysis_copy_guidance: 'プロジェクト分析に使用している LLM に戻ってください！',
+      copy_toast_dismiss: '閉じる',
+      analysis_continue_hint: '技術要約ができたら、プロンプトジェネレーターに進み、強調表示されたフィールドに貼り付けてください。',
+      btn_analysis_continue: 'プロンプトを取得',
+      prompt_copy_guidance: 'Framegrabber SDK コードを作成するために LLM に戻ってください！',
       privacy_label: 'データプライバシー', privacy_text: 'すべての入力はブラウザ内にのみ保存されます。データは送信されません。',
       confidential_label: '機密保持', confidential_text: '共有前に生成されたプロンプトを確認してください。機密の顧客データ、ソースコード、認証情報、シリアル番号、ライセンスキー、未公開のプロジェクト詳細を含めないでください。',
       guidance_label: 'ガイダンス', guidance_text: '他の SDK やシステムの既存取得コードがある場合は、まず選択した AI アシスタントでコードの動作を要約してください。許可されていない限り機密ソースコードを貼り付けないでください。技術要約の貼り付けを推奨します：何を取得するか？どのカメラと取得パラメータが構成されているか？バッファ、トリガー、DMA チャネル、イベント、タイムアウト、クリーンアップはどう処理されるか？',
@@ -571,6 +720,42 @@
     vi: {
       site_title: 'Trình tạo Prompt Basler Framegrabber SDK',
       site_subtitle: 'Soạn prompt LLM chất lượng cao cho mã thu thập Basler mạnh mẽ',
+      workflow_step_1_label: 'Phân tích mã cục bộ',
+      workflow_step_2_label: 'Lấy Prompt',
+      btn_workflow_analyse: 'Phân tích mã',
+      btn_workflow_prompt: 'Lấy Prompt',
+      modern_step_2_action: 'Dán kết quả từ agent cục bộ của bạn',
+      modern_landing_hint: 'Nhấp vào một bước để bắt đầu',
+      modern_hero_eyebrow: 'Framegrabber SDK · Prompt Studio',
+      modern_step_1_cta: 'Mở Bước 1',
+      modern_step_2_cta: 'Mở Bước 2',
+      step_badge_1: 'Bước 1',
+      step_badge_2: 'Bước 2',
+      section_core_title: 'Thiết lập ứng dụng',
+      section_hardware_title: 'Phần cứng & định tuyến',
+      section_acquisition_title: 'Tham số thu thập',
+      section_options_title: 'Tùy chọn prompt',
+      code_analysis_label: 'Prompt phân tích',
+      code_preview_label: 'Prompt đã tạo',
+      preview_live_label: 'Trực tiếp',
+      modern_llm_node: 'LLM cục bộ của bạn',
+      modern_llm_hint_analyse: 'Tóm tắt mã thu thập của bạn',
+      modern_llm_hint_generate: 'Tạo mã thu thập Basler',
+      switch_to_oldschool: 'Chuyển sang chế độ Oldschool',
+      switch_to_modern: 'Chuyển sang chế độ hiện đại',
+      analysis_heading: 'Bước 1 — Phân tích mã cục bộ',
+      analysis_intro: 'Sao chép prompt bên dưới vào trợ lý AI ưa thích và trỏ tới codebase thu thập cục bộ. Trợ lý nên trả về bản tóm tắt kỹ thuật — không phải mã nguồn — gồm phần cứng, cách dùng SDK, bộ đệm, trigger và tắt. Dán tóm tắt đó vào trình tạo ở bước 2.',
+      analysis_confidential_label: 'Bảo mật',
+      analysis_confidential_text: 'Chạy phân tích cục bộ bằng công cụ giữ mã riêng tư. Không dán mã nguồn bí mật vào dịch vụ không đáng tin. Tóm tắt dán ở đây nên bỏ bí mật, thông tin đăng nhập và định danh khách hàng.',
+      label_analysis_target_llm: 'Trợ lý AI đích',
+      btn_copy_analysis: 'Sao chép prompt phân tích',
+      analysis_copy_success: 'Đã sao chép prompt phân tích vào clipboard.',
+      analysis_copy_fail: 'Không thể sao chép. Chọn văn bản prompt thủ công.',
+      analysis_copy_guidance: 'Bây giờ hãy quay lại LLM bạn dùng để phân tích dự án!',
+      copy_toast_dismiss: 'Đóng',
+      analysis_continue_hint: 'Khi có bản tóm tắt kỹ thuật, tiếp tục tới trình tạo prompt và dán vào trường được đánh dấu.',
+      btn_analysis_continue: 'Lấy Prompt',
+      prompt_copy_guidance: 'Bây giờ hãy quay lại LLM để tạo mã Framegrabber SDK!',
       privacy_label: 'Quyền riêng tư dữ liệu', privacy_text: 'Mọi đầu vào chỉ lưu cục bộ trong trình duyệt. Không có dữ liệu nào được truyền đi.',
       confidential_label: 'Bảo mật', confidential_text: 'Xem lại prompt trước khi chia sẻ. Không bao gồm dữ liệu khách hàng bí mật, mã nguồn, thông tin đăng nhập, số serial, khóa license hoặc chi tiết dự án chưa công bố.',
       guidance_label: 'Hướng dẫn', guidance_text: 'Nếu bạn đã có mã thu thập từ SDK hoặc hệ thống khác, trước tiên hãy dùng trợ lý AI bạn chọn để tóm tắt mã làm gì. Không dán mã nguồn bí mật trừ khi được phép. Nên dán tóm tắt kỹ thuật: Thu thập gì? Camera và tham số thu thập nào được cấu hình? Bộ đệm, trigger, kênh DMA, sự kiện, timeout và dọn dẹp được xử lý thế nào?',
@@ -656,6 +841,41 @@
     de: {
       site_title: 'Basler Framegrabber SDK Prompt-Generator',
       site_subtitle: 'Hochwertige LLM-Prompts für robusten Basler-Erfassungscode erstellen',
+      workflow_step_1_label: 'Code lokal analysieren',
+      workflow_step_2_label: 'Prompt erstellen',
+      btn_workflow_analyse: 'Code analysieren',
+      btn_workflow_prompt: 'Prompt erstellen',
+      modern_step_2_action: 'Ergebnisse Ihres lokalen Agenten einfügen',
+      modern_landing_hint: 'Klicken Sie auf einen Schritt, um zu starten',
+      modern_hero_eyebrow: 'Framegrabber SDK · Prompt Studio',
+      modern_step_1_cta: 'Schritt 1 öffnen',
+      modern_step_2_cta: 'Schritt 2 öffnen',
+      step_badge_1: 'Schritt 1',
+      step_badge_2: 'Schritt 2',
+      section_core_title: 'Anwendungskonfiguration',
+      section_hardware_title: 'Hardware & Routing',
+      section_acquisition_title: 'Erfassungsparameter',
+      section_options_title: 'Prompt-Optionen',
+      code_analysis_label: 'Analyse-Prompt',
+      code_preview_label: 'Generierter Prompt',
+      preview_live_label: 'Live',
+      modern_llm_node: 'Ihr lokales LLM',
+      modern_llm_hint_analyse: 'Fasst Ihren Erfassungscode zusammen',
+      modern_llm_hint_generate: 'Erzeugt Basler-Erfassungscode',
+      switch_to_oldschool: 'Zur Oldschool-Ansicht wechseln',
+      switch_to_modern: 'Zur modernen Ansicht wechseln',
+      analysis_heading: 'Schritt 1 — Code lokal analysieren',
+      analysis_intro: 'Kopieren Sie den Prompt unten in Ihren bevorzugten KI-Assistenten und verweisen Sie auf Ihre lokale Erfassungs-Codebasis. Der Assistent soll eine technische Zusammenfassung liefern — keinen Quellcode — mit Hardware, SDK-Nutzung, Puffern, Triggern und Shutdown. Fügen Sie diese Zusammenfassung in Schritt 2 ein.',
+      analysis_confidential_label: 'Vertraulichkeit',
+      analysis_confidential_text: 'Führen Sie die Analyse lokal mit Tools aus, die Ihren Code privat halten. Fügen Sie keinen vertraulichen Quellcode in nicht vertrauenswürdige Dienste ein. Die Zusammenfassung sollte Geheimnisse, Zugangsdaten und Kundenkennungen weglassen.',
+      label_analysis_target_llm: 'Ziel-KI-Assistent',
+      btn_copy_analysis: 'Analyse-Prompt kopieren',
+      analysis_copy_success: 'Analyse-Prompt in die Zwischenablage kopiert.',
+      analysis_copy_fail: 'Kopieren fehlgeschlagen. Wählen Sie den Prompt-Text manuell aus.',
+      analysis_copy_guidance: 'Gehen Sie jetzt zurück zu Ihrem LLM, mit dem Sie Ihr Projekt analysieren!',
+      copy_toast_dismiss: 'Schließen',
+      analysis_continue_hint: 'Wenn Sie die technische Zusammenfassung haben, fahren Sie mit dem Prompt-Generator fort und fügen Sie sie in das hervorgehobene Feld ein.',
+      btn_analysis_continue: 'Prompt erstellen',
       privacy_label: 'Datenschutz',
       privacy_text: 'Alle Eingaben bleiben lokal in Ihrem Browser. Es werden keine Daten übertragen.',
       confidential_label: 'Vertraulichkeit',
@@ -699,6 +919,7 @@
       preview_heading: 'Live-Prompt-Vorschau', route_framegrabber: 'Basler Framegrabber SDK-Route', route_pylon: 'Basler pylon SDK-Route',
       btn_copy: 'Prompt kopieren', btn_download: 'Prompt als .txt herunterladen', btn_refresh: 'Prompt aktualisieren',
       copy_success: 'Prompt in Zwischenablage kopiert.', copy_fail: 'Kopieren fehlgeschlagen. Vorschau-Text manuell auswählen.',
+      prompt_copy_guidance: 'Gehen Sie jetzt zurück zu Ihrem LLM, um Framegrabber-SDK-Code zu erstellen!',
       footer_text: 'Nur clientseitig. Kein Tracking. Keine externen APIs.',
       footer_autosave: 'Ihre Konfiguration wird lokal in diesem Browser gespeichert.',
       warn_interface_card: 'Diese Auswahl ist eine Interface-Karte, kein programmierbarer Framegrabber. Der Prompt leitet die Implementierung zum Basler pylon SDK.',
@@ -757,6 +978,79 @@
   function t(key) {
     const bucket = UI_STRINGS[uiLang] || UI_STRINGS.en;
     return bucket[key] || UI_STRINGS.en[key] || key;
+  }
+
+  const LOCALE_TO_UI_LANG = {
+    de: 'de',
+    ko: 'ko',
+    zh: 'zh',
+    ja: 'ja',
+    vi: 'vi',
+    en: 'en'
+  };
+
+  function resolveUiLangFromTag(tag) {
+    if (!tag || typeof tag !== 'string') return null;
+    const primary = tag.trim().replace(/_/g, '-').split('-')[0].toLowerCase();
+    return LOCALE_TO_UI_LANG[primary] || null;
+  }
+
+  function detectPreferredUiLang() {
+    const candidates = [];
+    if (Array.isArray(navigator.languages)) candidates.push.apply(candidates, navigator.languages);
+    if (navigator.language) candidates.push(navigator.language);
+    try {
+      const intlLocale = Intl.DateTimeFormat().resolvedOptions().locale;
+      if (intlLocale) candidates.push(intlLocale);
+    } catch (e) { /* ignore */ }
+    for (let i = 0; i < candidates.length; i++) {
+      const lang = resolveUiLangFromTag(candidates[i]);
+      if (lang && LANG_OPTIONS.some(function (o) { return o.value === lang; })) return lang;
+    }
+    return 'en';
+  }
+
+  function applyUiLocaleVars() {
+    const root = document.documentElement;
+    root.style.setProperty('--step-badge-1', JSON.stringify(t('step_badge_1')));
+    root.style.setProperty('--step-badge-2', JSON.stringify(t('step_badge_2')));
+  }
+
+  let copyToastTimer = null;
+
+  function hideCopyGuidanceToast() {
+    const toast = $('copy-toast');
+    if (!toast) return;
+    toast.classList.remove('copy-toast-visible');
+    toast.setAttribute('aria-hidden', 'true');
+    if (copyToastTimer) {
+      clearTimeout(copyToastTimer);
+      copyToastTimer = null;
+    }
+  }
+
+  function showCopyGuidanceToast(guidanceKey, confirmKey) {
+    const toast = $('copy-toast');
+    const message = $('copy-toast-message');
+    const confirm = $('copy-toast-confirm');
+    if (!toast || !message) return;
+    if (confirm && confirmKey) confirm.textContent = t(confirmKey);
+    message.textContent = t(guidanceKey);
+    toast.classList.add('copy-toast-visible');
+    toast.setAttribute('aria-hidden', 'false');
+    if (copyToastTimer) clearTimeout(copyToastTimer);
+    copyToastTimer = setTimeout(hideCopyGuidanceToast, 8000);
+  }
+
+  function initCopyToast() {
+    const close = $('copy-toast-close');
+    if (close) {
+      close.setAttribute('aria-label', t('copy_toast_dismiss'));
+      close.addEventListener('click', hideCopyGuidanceToast);
+    }
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') hideCopyGuidanceToast();
+    });
   }
 
   function tp(key, plang) {
@@ -1077,7 +1371,7 @@
     LANG_OPTIONS.forEach((opt) => {
       const o = document.createElement('option');
       o.value = opt.value;
-      o.textContent = opt.flag + ' ' + t(opt.key);
+      o.textContent = opt.flag + ' ' + opt.nativeName;
       sel.appendChild(o);
     });
     if (saved && LANG_OPTIONS.some((o) => o.value === saved)) sel.value = saved;
@@ -1527,7 +1821,10 @@
       'label-trigger-mode', 'label-programming-language', 'label-operating-system', 'label-target-llm',
       'label-output-style', 'legend-options', 'detected-topics-title', 'no-topics-text',
       'snippets-summary', 'btn-load-example', 'btn-reset', 'preview-heading', 'btn-copy', 'btn-download',
-      'btn-refresh', 'footer-text', 'footer-autosave'
+      'btn-refresh', 'footer-text', 'footer-autosave',
+      'workflow-step-1-label', 'workflow-step-2-label', 'btn-workflow-analyse', 'btn-workflow-prompt',
+      'analysis-heading', 'analysis-intro', 'analysis-confidential-label', 'analysis-confidential-text',
+      'label-analysis-target-llm', 'btn-copy-analysis', 'analysis-continue-hint', 'btn-analysis-continue'
     ];
     const keys = [
       'site_title', 'site_subtitle', 'privacy_label', 'privacy_text', 'confidential_label', 'confidential_text',
@@ -1540,7 +1837,10 @@
       'label_trigger_mode', 'label_programming_language', 'label_operating_system', 'label_target_llm',
       'label_output_style', 'legend_options', 'detected_topics_title', 'no_topics_text',
       'snippets_summary', 'btn_load_example', 'btn_reset', 'preview_heading', 'btn_copy', 'btn_download',
-      'btn_refresh', 'footer_text', 'footer_autosave'
+      'btn_refresh', 'footer_text', 'footer_autosave',
+      'workflow_step_1_label', 'workflow_step_2_label', 'btn_workflow_analyse', 'btn_workflow_prompt',
+      'analysis_heading', 'analysis_intro', 'analysis_confidential_label', 'analysis_confidential_text',
+      'label_analysis_target_llm', 'btn_copy_analysis', 'analysis_continue_hint', 'btn_analysis_continue'
     ];
     ids.forEach((id, i) => {
       const el = $(id);
@@ -1562,11 +1862,251 @@
     const helpAutoAcq = $('help-auto-acq-applet');
     if (helpAutoAcq) helpAutoAcq.textContent = t('help_auto_acq_applet');
     applySupportNotice();
+    const landingHint = $('modern-landing-hint');
+    if (landingHint) landingHint.textContent = t('modern_landing_hint');
+    const heroEyebrow = $('modern-hero-eyebrow');
+    if (heroEyebrow) heroEyebrow.textContent = t('modern_hero_eyebrow');
+    const heroTitle = $('modern-hero-title');
+    if (heroTitle) heroTitle.textContent = t('site_title');
+    const heroSubtitle = $('modern-hero-subtitle');
+    if (heroSubtitle) heroSubtitle.textContent = t('site_subtitle');
+    const modernStep1Label = $('modern-step-1-label');
+    if (modernStep1Label) modernStep1Label.textContent = t('workflow_step_1_label');
+    const modernStep1Action = $('modern-step-1-action');
+    if (modernStep1Action) modernStep1Action.textContent = t('btn_workflow_analyse');
+    const modernStep1Cta = $('modern-step-1-cta');
+    if (modernStep1Cta) modernStep1Cta.textContent = t('modern_step_1_cta');
+    const step1Btn = $('modern-step-1');
+    if (step1Btn) step1Btn.setAttribute('aria-label', t('modern_step_1_cta') + ' — ' + t('workflow_step_1_label'));
+    const modernStep2Label = $('modern-step-2-label');
+    if (modernStep2Label) modernStep2Label.textContent = t('workflow_step_2_label');
+    const modernStep2Action = $('modern-step-2-action');
+    if (modernStep2Action) modernStep2Action.textContent = t('modern_step_2_action');
+    const modernStep2Cta = $('modern-step-2-cta');
+    if (modernStep2Cta) modernStep2Cta.textContent = t('modern_step_2_cta');
+    const step2Btn = $('modern-step-2');
+    if (step2Btn) step2Btn.setAttribute('aria-label', t('modern_step_2_cta') + ' — ' + t('workflow_step_2_label'));
+    const llmLabel1 = $('modern-llm-label-1');
+    const llmLabel2 = $('modern-llm-label-2');
+    if (llmLabel1) llmLabel1.textContent = t('modern_llm_node');
+    if (llmLabel2) llmLabel2.textContent = t('modern_llm_node');
+    const llmHint1 = $('modern-llm-hint-1');
+    const llmHint2 = $('modern-llm-hint-2');
+    if (llmHint1) llmHint1.textContent = t('modern_llm_hint_analyse');
+    if (llmHint2) llmHint2.textContent = t('modern_llm_hint_generate');
+    const sectionCore = $('section-core-title');
+    if (sectionCore) sectionCore.textContent = t('section_core_title');
+    const sectionHw = $('section-hardware-title');
+    if (sectionHw) sectionHw.textContent = t('section_hardware_title');
+    const sectionAcq = $('section-acquisition-title');
+    if (sectionAcq) sectionAcq.textContent = t('section_acquisition_title');
+    const sectionOpt = $('section-options-title');
+    if (sectionOpt) sectionOpt.textContent = t('section_options_title');
+    const codeAnalysisLabel = $('code-analysis-label');
+    if (codeAnalysisLabel) codeAnalysisLabel.textContent = t('code_analysis_label');
+    const codePreviewLabel = $('code-preview-label');
+    if (codePreviewLabel) codePreviewLabel.textContent = t('code_preview_label');
+    const previewLive = $('preview-live-label');
+    if (previewLive) previewLive.textContent = t('preview_live_label');
+    updateViewToggleLabel();
+    const toastClose = $('copy-toast-close');
+    if (toastClose) toastClose.setAttribute('aria-label', t('copy_toast_dismiss'));
+    applyUiLocaleVars();
     CHECKBOX_OPTIONS.forEach((cb) => {
       const lbl = $('lbl-' + cb.id);
       if (lbl) lbl.textContent = t(cb.locked ? 'cb_deep_analysis_locked' : cb.key);
     });
     document.documentElement.lang = uiLang;
+    populateAnalysisLlmSelect();
+  }
+
+  function populateAnalysisLlmSelect() {
+    const sel = $('analysis-target-llm');
+    if (!sel) return;
+    const saved = sel.value;
+    sel.innerHTML = '';
+    [
+      { value: 'cursor', key: 'llm_cursor' },
+      { value: 'chatgpt', key: 'llm_chatgpt' },
+      { value: 'claude', key: 'llm_claude' },
+      { value: 'copilot', key: 'llm_copilot' },
+      { value: 'generic', key: 'llm_generic' }
+    ].forEach((opt) => {
+      const o = document.createElement('option');
+      o.value = opt.value;
+      o.textContent = t(opt.key);
+      sel.appendChild(o);
+    });
+    if (saved && sel.querySelector('option[value="' + saved + '"]')) sel.value = saved;
+    else sel.value = 'cursor';
+  }
+
+  function updateAnalysisPreview() {
+    if (typeof ANALYSIS_PROMPTS === 'undefined') return;
+    const llm = $('analysis-target-llm') ? $('analysis-target-llm').value : 'cursor';
+    analysisPromptText = ANALYSIS_PROMPTS.getAnalysisPrompt(llm);
+    const pre = $('analysis-prompt-preview');
+    if (pre) pre.textContent = analysisPromptText;
+  }
+
+  function scrollToAnalysisSection() {
+    if (viewMode === 'modern' && !modernExpanded) {
+      expandModernView(1);
+      return;
+    }
+    scrollToAnalysisTarget();
+  }
+
+  function scrollToWorkflowSummary() {
+    if (viewMode === 'modern' && !modernExpanded) {
+      expandModernView(2);
+      return;
+    }
+    scrollToWorkflowSummaryTarget();
+  }
+
+  function scrollToAnalysisTarget() {
+    const section = $('code-analysis-section');
+    if (section) section.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+
+  function scrollToWorkflowSummaryTarget() {
+    const group = $('workflow-summary-group');
+    if (group) group.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    highlightWorkflowSummary();
+  }
+
+  function applyViewModeClasses() {
+    const body = document.body;
+    body.classList.remove('view-modern', 'view-oldschool', 'view-modern-expanded');
+    if (viewMode === 'oldschool') {
+      body.classList.add('view-oldschool');
+    } else {
+      body.classList.add('view-modern');
+      if (modernExpanded) body.classList.add('view-modern-expanded');
+    }
+  }
+
+  function updateViewToggleLabel() {
+    const btn = $('view-mode-toggle');
+    if (!btn) return;
+    const isOldschool = viewMode === 'oldschool';
+    btn.textContent = t(isOldschool ? 'switch_to_modern' : 'switch_to_oldschool');
+    btn.setAttribute('aria-pressed', isOldschool ? 'true' : 'false');
+  }
+
+  function saveViewMode() {
+    try {
+      localStorage.setItem(VIEW_MODE_STORAGE_KEY, JSON.stringify({ mode: viewMode }));
+    } catch (e) { /* ignore */ }
+  }
+
+  function loadViewMode() {
+    try {
+      const raw = localStorage.getItem(VIEW_MODE_STORAGE_KEY);
+      if (!raw) return;
+      const data = JSON.parse(raw);
+      if (data.mode === 'oldschool' || data.mode === 'modern') viewMode = data.mode;
+    } catch (e) { /* ignore */ }
+  }
+
+  function expandModernView(step) {
+    if (viewMode !== 'modern') return;
+    modernExpanded = true;
+    applyViewModeClasses();
+    requestAnimationFrame(() => {
+      if (step === 1) scrollToAnalysisTarget();
+      else scrollToWorkflowSummaryTarget();
+    });
+  }
+
+  function toggleViewMode() {
+    if (viewMode === 'oldschool') {
+      viewMode = 'modern';
+      modernExpanded = false;
+    } else {
+      viewMode = 'oldschool';
+    }
+    applyViewModeClasses();
+    updateViewToggleLabel();
+    saveViewMode();
+  }
+
+  function initViewMode() {
+    modernExpanded = false;
+    loadViewMode();
+    applyViewModeClasses();
+    updateViewToggleLabel();
+    const step1 = $('modern-step-1');
+    if (step1) step1.addEventListener('click', () => expandModernView(1));
+    const step2 = $('modern-step-2');
+    if (step2) step2.addEventListener('click', () => expandModernView(2));
+    const toggle = $('view-mode-toggle');
+    if (toggle) toggle.addEventListener('click', toggleViewMode);
+  }
+
+  function highlightWorkflowSummary() {
+    const group = $('workflow-summary-group');
+    if (!group) return;
+    group.classList.remove('field-highlight');
+    void group.offsetWidth;
+    group.classList.add('field-highlight');
+    if (highlightTimer) clearTimeout(highlightTimer);
+    highlightTimer = setTimeout(() => {
+      group.classList.remove('field-highlight');
+    }, 6000);
+    const ta = $('workflow-summary');
+    if (ta) setTimeout(() => ta.focus({ preventScroll: true }), 450);
+  }
+
+  function copyAnalysisPrompt() {
+    const status = $('analysis-copy-status');
+    if (!status) return;
+    const text = analysisPromptText || '';
+    const onSuccess = () => {
+      status.textContent = t('analysis_copy_success');
+      showCopyGuidanceToast('analysis_copy_guidance', 'analysis_copy_success');
+    };
+    const onFail = () => {
+      status.textContent = t('analysis_copy_fail');
+    };
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text).then(onSuccess).catch(onFail);
+    } else {
+      const ta = document.createElement('textarea');
+      ta.value = text;
+      document.body.appendChild(ta);
+      ta.select();
+      try {
+        document.execCommand('copy');
+        onSuccess();
+      } catch (e) {
+        onFail();
+      }
+      document.body.removeChild(ta);
+    }
+  }
+
+  function initAnalysisSection() {
+    populateAnalysisLlmSelect();
+    updateAnalysisPreview();
+    const llmSel = $('analysis-target-llm');
+    if (llmSel) llmSel.addEventListener('change', updateAnalysisPreview);
+    const btnCopy = $('btn-copy-analysis');
+    if (btnCopy) btnCopy.addEventListener('click', copyAnalysisPrompt);
+    const btnAnalyse = $('btn-workflow-analyse');
+    if (btnAnalyse) btnAnalyse.addEventListener('click', scrollToAnalysisSection);
+    const btnPrompt = $('btn-workflow-prompt');
+    if (btnPrompt) btnPrompt.addEventListener('click', scrollToWorkflowSummary);
+    const btnContinue = $('btn-analysis-continue');
+    if (btnContinue) btnContinue.addEventListener('click', scrollToWorkflowSummary);
+    const wf = $('workflow-summary');
+    if (wf) {
+      wf.addEventListener('focus', () => {
+        const group = $('workflow-summary-group');
+        if (group) group.classList.remove('field-highlight');
+      });
+    }
   }
 
   function refreshDropdownLabels() {
@@ -1951,12 +2491,15 @@
 
   function copyPrompt() {
     const status = $('copy-status');
+    const onSuccess = () => {
+      status.textContent = t('copy_success');
+      showCopyGuidanceToast('prompt_copy_guidance', 'copy_success');
+    };
+    const onFail = () => {
+      status.textContent = t('copy_fail');
+    };
     if (navigator.clipboard && navigator.clipboard.writeText) {
-      navigator.clipboard.writeText(currentPromptText).then(() => {
-        status.textContent = t('copy_success');
-      }).catch(() => {
-        status.textContent = t('copy_fail');
-      });
+      navigator.clipboard.writeText(currentPromptText).then(onSuccess).catch(onFail);
     } else {
       const ta = document.createElement('textarea');
       ta.value = currentPromptText;
@@ -1964,9 +2507,9 @@
       ta.select();
       try {
         document.execCommand('copy');
-        status.textContent = t('copy_success');
+        onSuccess();
       } catch (e) {
-        status.textContent = t('copy_fail');
+        onFail();
       }
       document.body.removeChild(ta);
     }
@@ -2126,16 +2669,20 @@
     refreshDropdownLabels();
     $('hardware').value = 'imaflex-cxp12-quad';
     $('applet-handling').value = 'standard_dll';
-    $('ui-language').value = 'en';
-    uiLang = 'en';
+    initDismissNotices();
+    initViewMode();
+    initCopyToast();
+    initAnalysisSection();
+    bindEvents();
+    const restored = restorePersistedState();
+    if (!restored) {
+      uiLang = detectPreferredUiLang();
+      $('ui-language').value = uiLang;
+      populateStandardAcqSelect(getHardware('imaflex-cxp12-quad'));
+    }
     applyStaticLabels();
     renderPerCameraFields($('camera-count').value, false);
     renderPerDmaFields($('dma-count').value, false);
-    initDismissNotices();
-    bindEvents();
-    if (!restorePersistedState()) {
-      populateStandardAcqSelect(getHardware('imaflex-cxp12-quad'));
-    }
     updatePreview();
   }
 
